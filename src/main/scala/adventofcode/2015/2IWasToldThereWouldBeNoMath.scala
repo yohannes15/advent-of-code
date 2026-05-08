@@ -58,4 +58,15 @@
   * How many total feet of ribbon should they order?
   */
 @main def ribbonNeeded(): Int =
-  ???
+  val dimensions: Seq[String] = os.read.lines(os.pwd / "AOC" / "15DAY02.txt")
+  val ribbonForEachPresent: Seq[Int] = dimensions.map[Int] {
+    dimension =>
+      val Array(length, width, height) = dimension.split('x').map(_.toInt)
+      val sides = Seq(length + width, length + height, width + height)
+      val volume = length * width * height
+      2 * sides.sum + volume
+  }
+
+  val totalPaperNeeded = ribbonForEachPresent.sum
+  println(s"Elves need $totalPaperNeeded total square feet of Ribbon!")
+  totalPaperNeeded
