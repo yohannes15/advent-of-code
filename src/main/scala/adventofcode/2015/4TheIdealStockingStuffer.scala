@@ -106,19 +106,17 @@ object Day04TheIdealStockingStuffer:
       Iterator.from(1).indexWhere(index => pred(md5(s"$inputStr$index"))) + 1
 
     // five zeros solution: requires 2.5 bytes of zeros (5 hex digits)
+    // a(0) checks hex 1-2, a(1) checks hex 3-4
+    // (a(2) & 0xf0) checks if the 5th hex digit (first 4 bits of byte 2) is 0
     val soln1 = search(
-      inputStr = input,
-      pred = a =>
-        // a(0) checks hex 1-2, a(1) checks hex 3-4
-        a(0) == 0 && a(1) == 0 &&
-        // (a(2) & 0xf0) checks if the 5th hex digit (first 4 bits of byte 2) is 0
-        (a(2) & 0xf0) == 0
+      input,
+      (a => a(0) == 0 && a(1) == 0 && (a(2) & 0xf0) == 0)
     )
 
     // six zeros solution: requires 3 full bytes of zeros (6 hex digits)
     val soln2 = search(
-      inputStr = input,
-      pred = a => a(0) == 0 && a(1) == 0 && a(2) == 0
+      input,
+      (a => a(0) == 0 && a(1) == 0 && a(2) == 0)
     )
 
     println(s"Solution1: $soln1 and Solution2: $soln2")
