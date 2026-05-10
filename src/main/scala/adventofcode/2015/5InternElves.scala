@@ -1,3 +1,5 @@
+import scala.util.matching.Regex
+
 /** --- Day 5: Doesn't He Have Intern-Elves For This? ---
   *
   * Santa needs help figuring out which strings in his text file are naughty or
@@ -27,35 +29,57 @@
   */
 object Day05NumberOfNiceStrings:
 
-  def isNiceString(s: String): Boolean =
-    val isNice =
-      !(
-        // Doesn't contain any of these substrings
-        s.contains("ab") ||
-          s.contains("cd") ||
-          s.contains("pq") ||
-          s.contains("xy")
-      ) &&
-        (
-          // Contains atleast three vowles
-          s.sliding(1).count(x =>
-            x == "a" ||
-              x == "e" ||
-              x == "i" ||
-              x == "o" ||
-              x == "u"
-          ) >= 3
-        ) &&
-        (
-          s.sliding(2).count(x => x.size == 2 && x(0) == x(1)) > 0
-        )
-    println(s"$s is nice? $isNice")
-    isNice
+  def regexSoln(lines: Seq[String]): Int =
 
-  @main def numberOfNiceStrings(): Int =
-    val lines: Seq[String] = os.read.lines(os.pwd / "AOC" / "15DAY05.txt")
+    val (vowels, pair, naughty) =
+      (
+        "[aeiou].*[aeiou].*[aeiou]".r.unanchored,
+        "(.)\\1".r.unanchored,
+        "ab|cd|pq|xy".r.unanchored
+      )
+
+    val noOfNices = lines.count(line =>
+      vowels.matches(line) && pair.matches(line) && !naughty.matches(line)
+    )
+    println(s"Number of nices: $noOfNices")
+    noOfNices
+
+  def slidingAndContainsSoln(lines: Seq[String]): Int =
+
+    def isNiceString(s: String): Boolean =
+      val isNice =
+        !(
+          // Doesn't contain any of these substrings
+          s.contains("ab") ||
+            s.contains("cd") ||
+            s.contains("pq") ||
+            s.contains("xy")
+        ) &&
+          (
+            // Contains atleast three vowles
+            s.sliding(1).count(x =>
+              x == "a" ||
+                x == "e" ||
+                x == "i" ||
+                x == "o" ||
+                x == "u"
+            ) >= 3
+          ) &&
+          (
+            s.sliding(2).count(x => x.size == 2 && x(0) == x(1)) > 0
+          )
+      println(s"$s is nice? $isNice")
+      isNice
+
     val noOfNices = lines.foldLeft(0)({
       case (nices, next) => if isNiceString(next) then nices + 1 else nices
     })
     println(s"Number of nices: $noOfNices")
     noOfNices
+
+  @main def numberOfNiceStrings(): Int =
+    val lines: Seq[String] = os.read.lines(os.pwd / "AOC" / "15DAY05.txt")
+    // First Pass Solution
+    // slidingAndContainsSoln(lines)
+    // Regex Solution
+    regexSoln(lines)
