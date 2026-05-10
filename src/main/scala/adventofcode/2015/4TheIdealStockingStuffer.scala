@@ -69,16 +69,19 @@ import java.security.MessageDigest
   */
 object Day04TheIdealStockingStuffer:
 
-  def md5(s: String): String =
+  def md5String(s: String): String =
     val md5 = MessageDigest.getInstance("MD5")
     val digest: Array[Byte] = md5.digest(s.getBytes("UTF-8"))
     // Correctly calculates the 128-bit hash as a Byte array.
     // need to format the result into a human-readable hexadecimal string
     digest.map("%02x".format(_)).mkString
 
+  def md5(s: String): Array[Byte] =
+    MessageDigest.getInstance("MD5").digest(s.getBytes("UTF-8"))
+
   @main def lowestIdealNumber(input: String): Int =
     val indexSatisfyingCondition = Iterator.from(1).indexWhere(index =>
-      md5(s"$input$index").startsWith("00000")
+      md5String(s"$input$index").startsWith("00000")
     ) + 1
     println(
       s"lowestIdealNumberForHashStartingWith00000 is $indexSatisfyingCondition"
@@ -87,9 +90,35 @@ object Day04TheIdealStockingStuffer:
 
   @main def lowestIdealNumberPart2(input: String): Int =
     val indexStatisfyingCondition = Iterator.from(1).indexWhere(index =>
-      md5(s"$input$index").startsWith("000000")
+      md5String(s"$input$index").startsWith("000000")
     ) + 1
     println(
-      s"lowestIdealNumberForHasStartingWith000000 is $indexStatisfyingCondition"
+      s"lowestIdealNumberForHashStartingWith000000 is $indexStatisfyingCondition"
     )
     indexStatisfyingCondition
+
+  @main def fastestSolution(input: String): Unit =
+    /* This solution is faster because it avoids the overhead of creating strings
+     * and formatting hex characters for every guess. Instead, it checks the raw
+     * bytes directly. Each byte represents two hex characters.
+     */
+    def search(inputStr: String, pred: Array[Byte] => Boolean): Int =
+      Iterator.from(1).indexWhere(index => pred(md5(s"$inputStr$index"))) + 1
+
+    // five zeros solution: requires 2.5 bytes of zeros (5 hex digits)
+    val soln1 = search(
+      inputStr = input,
+      pred = a =>
+        // a(0) checks hex 1-2, a(1) checks hex 3-4
+        a(0) == 0 && a(1) == 0 &&
+        // (a(2) & 0xf0) checks if the 5th hex digit (first 4 bits of byte 2) is 0
+        (a(2) & 0xf0) == 0
+    )
+
+    // six zeros solution: requires 3 full bytes of zeros (6 hex digits)
+    val soln2 = search(
+      inputStr = input,
+      pred = a => a(0) == 0 && a(1) == 0 && a(2) == 0
+    )
+
+    println(s"Solution1: $soln1 and Solution2: $soln2")
