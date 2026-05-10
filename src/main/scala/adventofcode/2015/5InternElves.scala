@@ -114,11 +114,27 @@ object Day05NumberOfNiceStrings:
     */
   @main def numberOfNiceStringsPart2(): Int =
     val lines: Seq[String] = os.read.lines(os.pwd / "AOC" / "15DAY05.txt")
-
-    regexSolnPart2(lines)
+    // sliding solution
+    solnPart2(lines)
+    // regex solution
+    // regexSolnPart2(lines)
 
   def solnPart2(lines: Seq[String]): Int =
-    ???
+    def isNiceString(s: String): Boolean =
+      // Check for a pair of any two letters that appears at least twice without overlapping
+      val hasTwoPair = s.sliding(2).zipWithIndex.exists { case (pair, i) =>
+        // Search for the same pair starting 2 positions after the current one to avoid overlap
+        s.indexOf(pair, i + 2) != -1
+      }
+      // Check for at least one letter which repeats with exactly one letter between them
+      val hasTriple = s.sliding(3).exists(window =>
+        window.size == 3 && window(0) == window(2)
+      )
+      hasTwoPair && hasTriple
+
+    val noOfNices = lines.count(isNiceString)
+    println(s"Number of nices (non-regex): $noOfNices")
+    noOfNices
 
   def regexSolnPart2(lines: Seq[String]): Int =
     val (twoPair, triple) = (
@@ -141,14 +157,12 @@ object Day05NumberOfNiceStrings:
   *      - Format: [aeiou] matches a single vowel. .* matches any sequence of
   *        characters. By repeating [aeiou] three times with .* in between, it
   *        ensures there are at least three vowels anywhere in the string.
-  *
   *   2. (.)\1 (pair)
   *      - Purpose: Checks for at least one letter that appears twice in a row
   *        (e.g., aa, bb).
   *      - Format: (.) is a capturing group that matches any single character.
   *        \1 is a backreference that matches the exact same character captured
   *        by the first group.
-  *
   *   3. ab|cd|pq|xy (naughty)
   *      - Purpose: Checks for disallowed substrings.
   *      - Format: The pipe | acts as an OR operator, matching any of the
@@ -162,9 +176,8 @@ object Day05NumberOfNiceStrings:
   *      - Purpose: Checks for a pair of any two letters that appears at least
   *        twice without overlapping (e.g., xyxy).
   *      - Format: (..) captures any two characters. .* matches any characters
-  *        in between. \1 is a backreference to the same two characters
-  *        captured at the start.
-  *
+  *        in between. \1 is a backreference to the same two characters captured
+  *        at the start.
   *   2. (.).\1 (triple)
   *      - Purpose: Checks for a letter that repeats with exactly one letter
   *        between them (e.g., xyx, aaa).
