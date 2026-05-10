@@ -83,3 +83,98 @@ object Day05NumberOfNiceStrings:
     // slidingAndContainsSoln(lines)
     // Regex Solution
     regexSoln(lines)
+
+  /** --- Part Two ---
+    *
+    * Realizing the error of his ways, Santa has switched to a better model of
+    * determining whether a string is naughty or nice. None of the old rules
+    * apply, as they are all clearly ridiculous.
+    *
+    * Now, a nice string is one with all of the following properties:
+    *
+    *   - It contains a pair of any two letters that appears at least twice in
+    *     the string without overlapping, like xyxy (xy) or aabcdefgaa (aa), but
+    *     not like aaa (aa, but it overlaps).
+    *   - It contains at least one letter which repeats with exactly one letter
+    *     between them, like xyx, abcdefeghi (efe), or even aaa.
+    *
+    * For example:
+    *
+    *   - qjhvhtzxzqqjkmpb is nice because is has a pair that appears twice (qj)
+    *     and a letter that repeats with exactly one letter between them (zxz).
+    *   - xxyxx is nice because it has a pair that appears twice and a letter
+    *     that repeats with one between, even though the letters used by each
+    *     rule overlap.
+    *   - uurcxstgmygtbstg is naughty because it has a pair (tg) but no repeat
+    *     with a single letter between them.
+    *   - ieodomkazucvgmuy is naughty because it has a repeating letter with one
+    *     between (odo), but no pair that appears twice.
+    *
+    * How many strings are nice under these new rules?
+    */
+  @main def numberOfNiceStringsPart2(): Int =
+    val lines: Seq[String] = os.read.lines(os.pwd / "AOC" / "15DAY05.txt")
+
+    regexSolnPart2(lines)
+
+  def solnPart2(lines: Seq[String]): Int =
+    ???
+
+  def regexSolnPart2(lines: Seq[String]): Int =
+    val (twoPair, triple) = (
+      "(..).*\\1".r.unanchored,
+      "(.).\\1".r.unanchored
+    )
+    val noOfNices =
+      lines.count(line => twoPair.matches(line) && triple.matches(line))
+    println(s"Number of nices: $noOfNices")
+    noOfNices
+
+/** NOTE: REGEX SOLUTIONS EXPLAINED
+  *
+  * Part 1 Regexes
+  *
+  * These are defined in the regexSoln method:
+  *
+  *   1. [aeiou].*[aeiou].*[aeiou] (vowels)
+  *      - Purpose: Checks for at least three vowels.
+  *      - Format: [aeiou] matches a single vowel. .* matches any sequence of
+  *        characters. By repeating [aeiou] three times with .* in between, it
+  *        ensures there are at least three vowels anywhere in the string.
+  *
+  *   2. (.)\1 (pair)
+  *      - Purpose: Checks for at least one letter that appears twice in a row
+  *        (e.g., aa, bb).
+  *      - Format: (.) is a capturing group that matches any single character.
+  *        \1 is a backreference that matches the exact same character captured
+  *        by the first group.
+  *
+  *   3. ab|cd|pq|xy (naughty)
+  *      - Purpose: Checks for disallowed substrings.
+  *      - Format: The pipe | acts as an OR operator, matching any of the
+  *        literal strings ab, cd, pq, or xy.
+  *
+  * Part 2 Regexes
+  *
+  * These are defined in the regexSolnPart2 method:
+  *
+  *   1. (..).*\1 (twoPair)
+  *      - Purpose: Checks for a pair of any two letters that appears at least
+  *        twice without overlapping (e.g., xyxy).
+  *      - Format: (..) captures any two characters. .* matches any characters
+  *        in between. \1 is a backreference to the same two characters
+  *        captured at the start.
+  *
+  *   2. (.).\1 (triple)
+  *      - Purpose: Checks for a letter that repeats with exactly one letter
+  *        between them (e.g., xyx, aaa).
+  *      - Format: (.) captures any single character. The . matches any single
+  *        character in the middle. \1 is a backreference to the first captured
+  *        character.
+  *
+  * Note on .unanchored
+  *
+  * All regexes in this file use the .unanchored method. In Scala, this allows
+  * the regex to match any substring of the input, rather than requiring the
+  * pattern to match the entire string from start to finish.
+  */
