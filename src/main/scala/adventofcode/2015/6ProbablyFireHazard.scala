@@ -32,67 +32,105 @@ import scala.util.matching.Regex
   */
 object Day06FireHazard:
 
-  enum Light:
-    case On, Off
-    def opposite: Light = if this == On then Off else On
+  opaque type Brightness = Int
 
+  /** Represents a single light in the grid.
+    *
+    * In Part 1, brightness is binary (0 or 1). In Part 2, brightness is an
+    * incremental value.
+    */
+  final case class Light private (brightness: Brightness):
+    /** Part 2: Increase brightness by 1 */
+    def turnOn: Light = this.copy(brightness + 1)
+
+    /** Part 2: Decrease brightness by 1, to a minimum of zero */
+    def turnOff: Light = brightness match
+      case b if b > 0 => this.copy(brightness - 1)
+      case _          => this
+
+    /** Part 2: Increase brightness by 2 */
+    def toggle: Light = this.copy(brightness + 2)
+
+    /** Used for Part 1 to count how many lights are "On" (brightness > 0) */
+    def isOn: Boolean = brightness > 0
+
+  object Light:
+    def on: Light = Light(1)
+    def off: Light = Light(0)
+
+  final case class Point(x: Int, y: Int)
+
+  /** Commands parsed from the input file */
   enum Command(val name: String):
     case TurnOn extends Command("turn on")
     case TurnOff extends Command("turn off")
     case Toggle extends Command("toggle")
 
+    /** Logic for Part 1: Binary switching */
     def run(l: Light): Light =
       this match
-        case TurnOn  => Light.On
-        case TurnOff => Light.Off
-        case Toggle  => l.opposite
+        case TurnOn  => Light.on
+        case TurnOff => Light.off
+        case Toggle  => if l.isOn then Light.off else Light.on
+
+    /** Logic for Part 2: Incremental brightness */
+    def run2(l: Light): Light =
+      this match
+        case TurnOn  => l.turnOn
+        case TurnOff => l.turnOff
+        case Toggle  => l.toggle
 
   object Command:
     def fromString(s: String): Option[Command] =
       values.find(_.name == s)
 
-  final case class Point(x: Int, y: Int)
+  /** The 1000x1000 grid of lights */
   final case class LightGrid private (grid: Vector[Vector[Light]]):
+    /** Part 1: Count lights with brightness > 0 */
     def noOfLightsOn: Int =
-      grid.map(row => row.count(light => light == Light.On)).sum
+      grid.map(row => row.count(light => light.isOn)).sum
 
+    /** Part 2: Sum of all brightness values */
+    def totalBrightness: Int =
+      grid.map(row => row.map(_.brightness).sum).sum
+
+    /** Updates a rectangular area of the grid using a transformation function.
+      *
+      * This implementation is optimized to update the grid row-by-row rather
+      * than light-by-light, significantly reducing object allocation overhead.
+      */
     def update(
         px: Point,
         py: Point,
-        cmd: Command
+        f: Light => Light
     ): LightGrid =
       val newGrid = (px.x to py.x).foldLeft(grid) { (g, x) =>
         val row = g(x)
-        // METHOD 1
-        // val updatedRow = row.zipWithIndex.map {
-        //  case (light, y) =>
-        //    if (y >= px.y && y <= py.y) then
-        //      cmd.run(light)
-        //    else
-        //      light
-        //
-        // }
 
-        // METHOD 2 PATCH (BETTER)
+        // Using .patch is significantly faster than manual element-wise updates
+        // as it minimizes the number of Vector reconstructions.
         val slice = row.slice(px.y, py.y + 1)
-        val updatedSlice = slice.map(l => cmd.run(l))
+        val updatedSlice = slice.map(f)
         val updatedRow = row.patch(px.y, updatedSlice, updatedSlice.length)
         g.updated(x, updatedRow)
-
       }
       LightGrid(newGrid)
 
   object LightGrid:
     def empty: LightGrid =
-      LightGrid(Vector.fill(1000, 1000)(Light.Off))
+      LightGrid(Vector.fill(1000, 1000)(Light.off))
 
   private val pattern: Regex =
     raw"(turn on|turn off|toggle) (\d+),(\d+) through (\d+),(\d+)".r
 
-  def doCommand(grid: LightGrid, line: String): LightGrid =
+  def doCommand(
+      grid: LightGrid,
+      line: String,
+      part2: Boolean = false
+  ): LightGrid =
     line match
-      case pattern(cmd, x1, y1, x2, y2) =>
-        val command = Command.fromString(cmd)
+      case pattern(cmdStr, x1, y1, x2, y2) =>
+        val command = Command.fromString(cmdStr)
         (
           command,
           x1.toIntOption,
@@ -101,10 +139,12 @@ object Day06FireHazard:
           y2.toIntOption
         ) match
           case (Some(cmd), Some(x1), Some(y1), Some(x2), Some(y2)) =>
-            grid.update(Point(x1, y1), Point(x2, y2), cmd)
+            val f = if part2 then cmd.run2 else cmd.run
+            grid.update(Point(x1, y1), Point(x2, y2), f)
           case _ =>
             println(s"Unable to parse line fully. skipping: $line")
             grid
+      case _ => grid
 
   @main def numberOfLightsLit(): Int =
     val lines = os.read.lines(os.pwd / "AOC" / "15DAY06.txt").toList
@@ -115,6 +155,38 @@ object Day06FireHazard:
     println(s"Number of Lights On: $noOfLightsOn")
     noOfLightsOn
 
+  /** --- Part Two ---
+    *
+    * You just finish implementing your winning light pattern when you realize
+    * you mistranslated Santa's message from Ancient Nordic Elvish.
+    *
+    * The light grid you bought actually has individual brightness controls;
+    * each light can have a brightness of zero or more. The lights all start at
+    * zero.
+    *
+    * The phrase turn on actually means that you should increase the brightness
+    * of those lights by 1.
+    *
+    * The phrase turn off actually means that you should decrease the brightness
+    * of those lights by 1, to a minimum of zero.
+    *
+    * The phrase toggle actually means that you should increase the brightness
+    * of those lights by 2.
+    *
+    * What is the total brightness of all lights combined after following
+    * Santa's instructions?
+    *
+    * For example:
+    *
+    *   - turn on 0,0 through 0,0 would increase the total brightness by 1.
+    *   - toggle 0,0 through 999,999 would increase the total brightness by
+    *     2000000.
+    */
   @main def totalBrightnessOfAllLights(): Int =
     val lines = os.read.lines(os.pwd / "AOC" / "15DAY06.txt").toList
-    0
+    val lightGrid = lines.foldLeft(LightGrid.empty) {
+      case (grid, line) => doCommand(grid, line.toLowerCase, part2 = true)
+    }
+    val totalBrightness = lightGrid.totalBrightness
+    println(s"Total Brightness: $totalBrightness")
+    totalBrightness
