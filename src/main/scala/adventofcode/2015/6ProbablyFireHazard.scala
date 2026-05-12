@@ -1,3 +1,5 @@
+import scala.util.matching.Regex
+
 /** --- Day 6: Probably a Fire Hazard ---
   *
   * Because your neighbors keep defeating you in the holiday house decorating
@@ -28,3 +30,91 @@
   *
   * After following the instructions, how many lights are lit?
   */
+object Day06FireHazard:
+
+  enum Light:
+    case On, Off
+    def opposite: Light = if this == On then Off else On
+
+  enum Command(val name: String):
+    case TurnOn extends Command("turn on")
+    case TurnOff extends Command("turn off")
+    case Toggle extends Command("toggle")
+
+    def run(l: Light): Light =
+      this match
+        case TurnOn  => Light.On
+        case TurnOff => Light.Off
+        case Toggle  => l.opposite
+
+  object Command:
+    def fromString(s: String): Option[Command] =
+      values.find(_.name == s)
+
+  final case class Point(x: Int, y: Int)
+  final case class LightGrid private (grid: Vector[Vector[Light]]):
+    def noOfLightsOn: Int =
+      grid.map(row => row.count(light => light == Light.On)).sum
+
+    def update(
+        px: Point,
+        py: Point,
+        cmd: Command
+    ): LightGrid =
+      val newGrid = (px.x to py.x).foldLeft(grid) { (g, x) =>
+        val row = g(x)
+        // METHOD 1
+        // val updatedRow = row.zipWithIndex.map {
+        //  case (light, y) =>
+        //    if (y >= px.y && y <= py.y) then
+        //      cmd.run(light)
+        //    else
+        //      light
+        //
+        // }
+
+        // METHOD 2 PATCH (BETTER)
+        val slice = row.slice(px.y, py.y + 1)
+        val updatedSlice = slice.map(l => cmd.run(l))
+        val updatedRow = row.patch(px.y, updatedSlice, updatedSlice.length)
+        g.updated(x, updatedRow)
+
+      }
+      LightGrid(newGrid)
+
+  object LightGrid:
+    def empty: LightGrid =
+      LightGrid(Vector.fill(1000, 1000)(Light.Off))
+
+  private val pattern: Regex =
+    raw"(turn on|turn off|toggle) (\d+),(\d+) through (\d+),(\d+)".r
+
+  def doCommand(grid: LightGrid, line: String): LightGrid =
+    line match
+      case pattern(cmd, x1, y1, x2, y2) =>
+        val command = Command.fromString(cmd)
+        (
+          command,
+          x1.toIntOption,
+          y1.toIntOption,
+          x2.toIntOption,
+          y2.toIntOption
+        ) match
+          case (Some(cmd), Some(x1), Some(y1), Some(x2), Some(y2)) =>
+            grid.update(Point(x1, y1), Point(x2, y2), cmd)
+          case _ =>
+            println(s"Unable to parse line fully. skipping: $line")
+            grid
+
+  @main def numberOfLightsLit(): Int =
+    val lines = os.read.lines(os.pwd / "AOC" / "15DAY06.txt").toList
+    val lightGrid = lines.foldLeft(LightGrid.empty) {
+      case (grid, line) => doCommand(grid, line.toLowerCase)
+    }
+    val noOfLightsOn = lightGrid.noOfLightsOn
+    println(s"Number of Lights On: $noOfLightsOn")
+    noOfLightsOn
+
+  @main def totalBrightnessOfAllLights(): Int =
+    val lines = os.read.lines(os.pwd / "AOC" / "15DAY06.txt").toList
+    0
